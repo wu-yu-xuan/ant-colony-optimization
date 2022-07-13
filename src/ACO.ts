@@ -9,12 +9,12 @@ export default class AntColonyOptimization {
   /**
    * 距离矩阵
    */
-  pointDistanceMatrix: number[][];
+  pointDistanceMatrix!: number[][];
 
   /**
    * 启发式因子矩阵
    */
-  etaMatrix: number[][];
+  etaMatrix!: number[][];
 
   /**
    * 信息素矩阵
@@ -41,6 +41,10 @@ export default class AntColonyOptimization {
 
   maxY: number;
 
+  eta: (distance: number) => number;
+
+  initTau: number;
+
   constructor({
     pointLength = 10,
     maxX = 1000,
@@ -66,6 +70,8 @@ export default class AntColonyOptimization {
     this.maxTau = maxTau;
     this.maxX = maxX;
     this.maxY = maxY;
+    this.eta = eta;
+    this.initTau = initTau;
 
     /**
      * 初始化点数组
@@ -76,6 +82,22 @@ export default class AntColonyOptimization {
         y: Math.floor(Math.random() * maxY),
       };
     });
+
+    this.initDistanceAndEta();
+
+    /**
+     * 初始化信息素矩阵
+     */
+    this.tauMatrix = new Array(pointLength)
+      .fill(0)
+      .map(() => new Array(pointLength).fill(initTau));
+  }
+
+  /**
+   * 初始化距离矩阵和启发式因子矩阵
+   */
+  initDistanceAndEta() {
+    const pointLength = this.pointArray.length;
 
     /**
      * 初始化距离矩阵
@@ -103,16 +125,9 @@ export default class AntColonyOptimization {
 
     for (let i = 0; i < pointLength; i++) {
       for (let j = 0; j < pointLength; j++) {
-        this.etaMatrix[i][j] = eta(this.pointDistanceMatrix[i][j]);
+        this.etaMatrix[i][j] = this.eta(this.pointDistanceMatrix[i][j]);
       }
     }
-
-    /**
-     * 初始化信息素矩阵
-     */
-    this.tauMatrix = new Array(pointLength)
-      .fill(0)
-      .map(() => new Array(pointLength).fill(initTau));
   }
 
   run() {
@@ -170,6 +185,9 @@ export default class AntColonyOptimization {
     return findBestAnt(antArray);
   }
 
+  /**
+   * 更新信息素
+   */
   updateTau(antArray: Ant[]) {
     const deltaTauMatrix: number[][] = new Array(this.pointArray.length)
       .fill(0)
@@ -197,5 +215,23 @@ export default class AntColonyOptimization {
         );
       }
     }
+  }
+
+  addPointAndRerun() {
+    const point = {
+      x: Math.floor(Math.random() * this.maxX),
+      y: Math.floor(Math.random() * this.maxY),
+    };
+    this.pointArray.push(point);
+    this.initDistanceAndEta();
+    /**
+     * 填补信息素矩阵空白
+     */
+    this.tauMatrix[this.pointArray.length - 1] = [];
+    for (let index = 0; index < this.pointArray.length; index++) {
+      this.tauMatrix[index][this.pointArray.length - 1] = this.initTau;
+      this.tauMatrix[this.pointArray.length - 1][index] = this.initTau;
+    }
+    return this.run();
   }
 }

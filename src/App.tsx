@@ -1,18 +1,19 @@
 import { useEffect, useState } from "react";
-import "./App.css";
 import AntColonyOptimization from "./ACO";
 import Ant from "./Ant";
 
+const initPointLength = 10;
+
 const aco = new AntColonyOptimization({
-  pointLength: 10,
+  pointLength: initPointLength,
   antLength: 5,
   iterationLength: 500,
   initTau: 10,
-  minTau: 1,
-  maxTau: 1000,
+  minTau: 10,
+  maxTau: 100,
   leftTau: 0.5,
   alpha: 2,
-  beta: 4,
+  beta: 2,
 });
 
 window.aco = aco;
@@ -28,8 +29,16 @@ function App() {
     <>
       <svg width={aco.maxX} height={aco.maxY}>
         {aco.pointArray.map((point, index) => {
+          const isNew =
+            index >= initPointLength && index === aco.pointArray.length - 1;
           return (
-            <circle key={index} cx={point.x} cy={point.y} r={5} fill="black" />
+            <circle
+              key={index}
+              cx={point.x}
+              cy={point.y}
+              r={5}
+              fill={isNew ? "red" : "black"}
+            />
           );
         })}
         {ant &&
@@ -52,7 +61,12 @@ function App() {
             );
           })}
       </svg>
-      <div>min distance: {ant?.distance}</div>
+      <div>
+        min distance: {ant?.distance}
+        <button onClick={() => setAnt(aco.addPointAndRerun())}>
+          add point and rerun
+        </button>
+      </div>
     </>
   );
 }
