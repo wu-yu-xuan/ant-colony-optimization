@@ -38,11 +38,20 @@ export default class Ant {
   }
 
   iterate() {
-    while (this.traveledPointArray.length !== this.probabilityMatrix.length) {
-      this.singleIterate();
+    while (this.singleIterate()) {}
+    if (
+      !this.probabilityMatrix[this.traveledPointArray[0]][
+        this.traveledPointArray[this.traveledPointArray.length - 1]
+      ]
+    ) {
+      /**
+       * 剩下的最后一段路不可走
+       */
+      return false;
     }
     this.distance +=
       this.pointDistanceMatrix[0][this.traveledPointArray.length - 1];
+    return true;
   }
 
   /**
@@ -52,8 +61,12 @@ export default class Ant {
     const currentPoint =
       this.traveledPointArray[this.traveledPointArray.length - 1];
     const nextPoint = this.getNextPoint();
+    if (nextPoint === false) {
+      return false;
+    }
     this.traveledPointArray.push(nextPoint);
     this.distance += this.pointDistanceMatrix[currentPoint][nextPoint];
+    return true;
   }
 
   getNextPoint() {
@@ -66,10 +79,14 @@ export default class Ant {
     const availablePoint: [number, number][] = Object.entries(
       this.probabilityMatrix[currentPoint]
     )
-      .filter(([point]) => {
-        return !this.traveledPointArray.includes(Number(point));
+      .filter(([point, probability]) => {
+        return !this.traveledPointArray.includes(Number(point)) && probability;
       })
       .map(([point, probability]) => [Number(point), probability]);
+
+    if (!availablePoint.length) {
+      return false;
+    }
 
     return random(availablePoint);
   }

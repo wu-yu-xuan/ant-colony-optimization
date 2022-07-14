@@ -45,6 +45,11 @@ export default class AntColonyOptimization {
 
   initTau: number;
 
+  /**
+   * 禁止走的路径，为两个点的 index 的数组
+   */
+  banPathMatrix: [number, number][] = [];
+
   constructor({
     pointLength = 10,
     maxX = 1000,
@@ -108,6 +113,16 @@ export default class AntColonyOptimization {
 
     for (let i = 0; i < pointLength; i++) {
       for (let j = 0; j < pointLength; j++) {
+        if (
+          this.banPathMatrix.some(([firstIndex, secondIndex]) => {
+            const eq1 = i === firstIndex && j === secondIndex;
+            const eq2 = j === firstIndex && i === secondIndex;
+            return eq1 || eq2;
+          })
+        ) {
+          this.pointDistanceMatrix[i][j] = Infinity;
+          continue;
+        }
         const first = this.pointArray[i];
         const second = this.pointArray[j];
         this.pointDistanceMatrix[i][j] = Math.sqrt(
@@ -171,14 +186,15 @@ export default class AntColonyOptimization {
   singleIterate() {
     const probabilityMatrix = this.getProbabilityMatrix();
 
-    const antArray = new Array(this.pointArray.length).fill(0).map(() => {
-      return new Ant({
-        probabilityMatrix,
-        pointDistanceMatrix: this.pointDistanceMatrix,
-      });
-    });
-
-    antArray.forEach((ant) => ant.iterate());
+    const antArray = new Array(this.pointArray.length)
+      .fill(0)
+      .map(() => {
+        return new Ant({
+          probabilityMatrix,
+          pointDistanceMatrix: this.pointDistanceMatrix,
+        });
+      })
+      .filter((ant) => ant.iterate());
 
     this.updateTau(antArray);
 
@@ -217,6 +233,9 @@ export default class AntColonyOptimization {
     }
   }
 
+  /**
+   * 加一个点然后运行
+   */
   addPointAndRerun() {
     const point = {
       x: Math.floor(Math.random() * this.maxX),
@@ -232,6 +251,15 @@ export default class AntColonyOptimization {
       this.tauMatrix[index][this.pointArray.length - 1] = this.initTau;
       this.tauMatrix[this.pointArray.length - 1][index] = this.initTau;
     }
+    return this.run();
+  }
+
+  /**
+   * 禁用一个路径然后运行
+   */
+  banPathAndRerun([firstIndex, secondIndex]: [number, number]) {
+    this.banPathMatrix.push([firstIndex, secondIndex]);
+    this.initDistanceAndEta();
     return this.run();
   }
 }
