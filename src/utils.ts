@@ -32,3 +32,20 @@ export function findBestAnt(antArray: Ant[]) {
     return acc;
   });
 }
+
+export function fraction(array: number[], index: number) {
+  const target = array[index];
+  if (!isFinite(target)) {
+    return 0;
+  }
+  const sum = array.reduce((acc, cur) => {
+    if (!isFinite(cur)) {
+      return acc;
+    }
+    return acc + cur;
+  }, 0);
+  if (sum === 0 || !isFinite(sum)) {
+    return 0;
+  }
+  return target / sum;
+}

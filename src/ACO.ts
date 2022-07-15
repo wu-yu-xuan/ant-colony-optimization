@@ -1,10 +1,10 @@
 import Ant from "./Ant";
 import { defaultDeltaTau, defaultEta } from "./const";
 import { AntColonyOptimizationOptions, Point } from "./types";
-import { findBestAnt } from "./utils";
+import { findBestAnt, fraction } from "./utils";
 
 export default class AntColonyOptimization {
-  pointArray: Array<Point>;
+  pointArray!: Array<Point>;
 
   /**
    * 距离矩阵
@@ -19,7 +19,7 @@ export default class AntColonyOptimization {
   /**
    * 信息素矩阵
    */
-  tauMatrix: number[][];
+  tauMatrix!: number[][];
 
   iterationLength: number;
 
@@ -50,6 +50,10 @@ export default class AntColonyOptimization {
    */
   banPathMatrix: [number, number][] = [];
 
+  pointLength: number;
+
+  bestAntArray: Ant[] = [];
+
   constructor({
     pointLength = 10,
     maxX = 1000,
@@ -77,14 +81,25 @@ export default class AntColonyOptimization {
     this.maxY = maxY;
     this.eta = eta;
     this.initTau = initTau;
+    this.pointLength = pointLength;
+
+    this.init();
+  }
+
+  /**
+   * 初始化
+   */
+  init() {
+    this.banPathMatrix = [];
+    this.bestAntArray = [];
 
     /**
      * 初始化点数组
      */
-    this.pointArray = new Array<number>(pointLength).fill(0).map(() => {
+    this.pointArray = new Array<number>(this.pointLength).fill(0).map(() => {
       return {
-        x: Math.floor(Math.random() * maxX),
-        y: Math.floor(Math.random() * maxY),
+        x: Math.floor(Math.random() * this.maxX),
+        y: Math.floor(Math.random() * this.maxY),
       };
     });
 
@@ -93,9 +108,9 @@ export default class AntColonyOptimization {
     /**
      * 初始化信息素矩阵
      */
-    this.tauMatrix = new Array(pointLength)
+    this.tauMatrix = new Array(this.pointLength)
       .fill(0)
-      .map(() => new Array(pointLength).fill(initTau));
+      .map(() => new Array(this.pointLength).fill(this.initTau));
   }
 
   /**
@@ -146,19 +161,12 @@ export default class AntColonyOptimization {
   }
 
   run() {
-    const antArray: Ant[] = [];
+    this.bestAntArray = [];
     for (let i = 0; i < this.iterationLength; i++) {
       const ant = this.singleIterate();
       console.log(`第 ${i} 次迭代，最短距离为 ${ant.distance}`);
-      antArray.push(ant);
-
-      /**
-       * 精英蚂蚁系统
-       */
-      const bestAnt = findBestAnt(antArray);
-      this.updateTau([bestAnt, bestAnt, bestAnt]);
     }
-    return findBestAnt(antArray);
+    return findBestAnt(this.bestAntArray);
   }
 
   /**
@@ -198,7 +206,14 @@ export default class AntColonyOptimization {
 
     this.updateTau(antArray);
 
-    return findBestAnt(antArray);
+    const currentBestAnt = findBestAnt(antArray);
+    this.bestAntArray.push(currentBestAnt);
+    /**
+     * 精英蚂蚁系统
+     */
+    const bestAnt = findBestAnt(this.bestAntArray);
+    this.updateTau([bestAnt, bestAnt, bestAnt]);
+    return currentBestAnt;
   }
 
   /**
@@ -261,5 +276,30 @@ export default class AntColonyOptimization {
     this.banPathMatrix.push([firstIndex, secondIndex]);
     this.initDistanceAndEta();
     return this.run();
+  }
+
+  singleIterateVisually() {
+    this.singleIterate();
+    return this.getVisualProbabilityMatrix();
+  }
+
+  getVisualProbabilityMatrix() {
+    const probabilityMatrix = this.getProbabilityMatrix();
+    const visualProbabilityMatrix: number[][] = new Array(
+      this.pointArray.length
+    );
+
+    for (let i = 0; i < visualProbabilityMatrix.length; i++) {
+      visualProbabilityMatrix[i] = new Array(this.pointArray.length).fill(0);
+      for (let j = 0; j < visualProbabilityMatrix[i].length; j++) {
+        const probabilityI = fraction(probabilityMatrix[i], j);
+        const probabilityJ = fraction(probabilityMatrix[j], i);
+        visualProbabilityMatrix[i][j] = Math.sqrt(
+          (probabilityI + probabilityJ) / 2
+        );
+      }
+    }
+
+    return visualProbabilityMatrix;
   }
 }
